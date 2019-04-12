@@ -2,7 +2,7 @@
 # @Author: Yitao
 # @Date:   2019-04-11 23:14:51
 # @Last Modified by:   Yitao
-# @Last Modified time: 2019-04-11 23:17:02
+# @Last Modified time: 2019-04-13 00:50:33
 
 import os
 import platform
@@ -54,7 +54,7 @@ def hosts_update():
             new.write(line)
         print('已备份原hosts为%s' % hosts_backup_path)
         for key,value in hosts_dic.items():
-            record = str(key) + ' ' + str(value[0]) + '\n'
+            record = str(value[0]) + ' ' + str(key) + '\n'
             new.write(record)
     os.remove(hosts_path)
     os.rename(hosts_new_path,hosts_path)
