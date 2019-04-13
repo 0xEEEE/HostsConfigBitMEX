@@ -2,13 +2,14 @@
 # @Author: Yitao
 # @Date:   2019-04-11 23:14:51
 # @Last Modified by:   Yitao
-# @Last Modified time: 2019-04-13 00:50:33
+# @Last Modified time: 2019-04-13 15:41:11
 
 import os
 import platform
 import time
 import urllib.request
 import re
+import threading
 
 domain_set = {'sentry.services.bitmex.com', 'static.bitmex.com', 'www.bitmex.com', 'bitmex.com', 
               'public.bitmex.com', 'blog.bitmex.com', 'testnet.bitmex.com', 'testnet-static.bitmex.com', 
@@ -63,7 +64,13 @@ def hosts_update():
 if __name__ == '__main__':
     path_check()
     print('开始查询IP地址……')
+    threads = []
     for domain in domain_set:
-        ip_check(domain)
+        thread = threading.Thread(target=ip_check,args=(domain,))
+        threads.append(thread)
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
     print('查询完毕，开始更新hosts文件……')
     hosts_update()
