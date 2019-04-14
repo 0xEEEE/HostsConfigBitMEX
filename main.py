@@ -2,7 +2,7 @@
 # @Author: Yitao
 # @Date:   2019-04-11 23:14:51
 # @Last Modified by:   Yitao
-# @Last Modified time: 2019-04-13 15:41:11
+# @Last Modified time: 2019-04-14 11:20:08
 
 import os
 import platform
@@ -27,9 +27,9 @@ def path_check():
     global hosts_backup_path
     global hosts_new_path
     if platform.system() == 'Windows':
-        hosts_path = os.environ['SYSTEMROOT']+'\\System32\\drivers\\etc\\hosts'
-        hosts_backup_path = os.environ['SYSTEMROOT']+'\\System32\\drivers\\etc\\hosts.bak'+time_stamp()
-        hosts_new_path = os.environ['SYSTEMROOT']+'\\System32\\drivers\\etc\\hosts.new'
+        hosts_path = os.environ['SYSTEMROOT']+'/System32/drivers/etc/hosts'
+        hosts_backup_path = os.environ['SYSTEMROOT']+'/System32/drivers/etc/hosts.bak'+time_stamp()
+        hosts_new_path = os.environ['SYSTEMROOT']+'/System32/drivers/etc/hosts.new'
     else:
         hosts_path = '/etc/hosts'
         hosts_backup_path = '/etc/hosts.bak'+time_stamp()
