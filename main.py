@@ -2,7 +2,7 @@
 # @Author: Yitao
 # @Date:   2019-04-11 23:14:51
 # @Last Modified by:   Yitao
-# @Last Modified time: 2019-04-16 21:15:26
+# @Last Modified time: 2019-04-19 23:49:14
 
 import os
 import platform
@@ -126,6 +126,15 @@ if __name__ == '__main__':
     for thread in threads:
         thread.join()
     print('查询完毕，开始测试IP地址连通性……')
-    set_dns_record()
+    for domain in dns_dic:
+        rtt_dic = {}
+        if len(dns_dic[domain]) != 1:
+            for ip in dns_dic[domain]:
+                ping_result = ping(ip)
+                rtt_dic[ip] = get_ping_rtt(ping_result)
+            key_min = key_min = min(rtt_dic, key=rtt_dic.get)
+            dns_dic[domain] = key_min
+        else:
+            dns_dic[domain] = dns_dic[domain][0]
     print('测试完毕，开始更新hosts文件……')
     hosts_update()
