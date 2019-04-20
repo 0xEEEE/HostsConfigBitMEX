@@ -2,7 +2,7 @@
 # @Author: Yitao
 # @Date:   2019-04-11 23:14:51
 # @Last Modified by:   Yitao
-# @Last Modified time: 2019-04-19 23:49:14
+# @Last Modified time: 2019-04-20 19:32:41
 
 import os
 import platform
@@ -38,36 +38,26 @@ def path_check():
         hosts_backup_path = '/etc/hosts.bak'+time_stamp()
         hosts_new_path = '/etc/hosts.new'
 
-def dns_check(domain):
-    reg = re.compile(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
-    response = urllib.request.urlopen(dns_check_url + domain).read()
-    html = bytes(response).decode('ascii')
-    ip_addrs = reg.findall(html)
-    dns_dic[domain] = ip_addrs
-    print('查询到'+domain+' IP地址为%s' %ip_addrs)
-
-def ping(ip, ping_count='10'):
+def ping(ip, rtt_dic, ping_count='10'):
     # 默认ping的次数为10次
-    print('正在ping测试%s连通性……' % ip)
+    print('开始ping测试%s连通性……' % ip)
     ping_c = '-n' if is_windows else '-c'
     p = subprocess.Popen(['ping', ping_c, ping_count, ip], stdin = subprocess.PIPE, stdout=subprocess.PIPE)
     decode_str = 'gbk' if is_windows else 'utf-8'
     ping_result = p.stdout.read().decode(decode_str)
-    return ping_result
 
-def get_ping_rtt(ping_result):
     rtt = 100000.0
     if is_windows:
         reg_min = re.compile(r'最短\s?=\s?\d+ms|Minimum\s?=\s?\d+ms')
         reg_max = re.compile(r'最长\s?=\s?\d+ms|Maximum\s?=\s?\d+ms')
         reg_avg = re.compile(r'平均\s?=\s?\d+ms|Average\s?=\s?\d+ms')
-        minimum, maximum, average = reg_min.findall(win_result), reg_max.findall(win_result), reg_avg.findall(win_result)
+        minimum, maximum, average = reg_min.findall(ping_result), reg_max.findall(ping_result), reg_avg.findall(ping_result)
         if minimum and maximum and average:
             minimum, maximum, average = [re.sub(r'[MinimumMaximumAverage最短最长平均= ms]', '',x)  for x in [minimum[0], maximum[0], average[0]]]
             rtt = float(average)
-            print('平均延迟%sms\n' % average)
+            print('%s平均延迟%sms\n' % (ip, average))
         else:
-            print('无法连通！\n')
+            print('%s无法连通！\n' % ip)
     else:
         reg_key = re.compile(r'\w*\D/\w*\D/\w*\D/\D\w*')
         reg_value = re.compile(r'\d*\.?\d*\/\d*\.?\d*\/\d*\.?\d*\/\d*\.?\d*')
@@ -79,22 +69,35 @@ def get_ping_rtt(ping_result):
             avg = 'avg'
             stddev = 'mdev' if 'mdev' in ping_dic else 'stddev'
             rtt = float(ping_dic[avg]) + float(ping_dic[stddev])
-            print('平均延迟%sms\n标准差%sms\n' % (ping_dic[avg], ping_dic[stddev]))
+            print('%s平均延迟%sms\n标准差%sms\n' % (ip, ping_dic[avg], ping_dic[stddev]))
         else:
-            print('无法连通！\n')
-    return rtt
+            print('%s无法连通！\n' % ip)
+    rtt_dic[ip] = rtt
 
-def set_dns_record():
-    for domain in dns_dic:
-        rtt_dic = {}
-        if len(dns_dic[domain]) != 1:
-            for ip in dns_dic[domain]:
-                ping_result = ping(ip)
-                rtt_dic[ip] = get_ping_rtt(ping_result)
-            key_min = key_min = min(rtt_dic, key=rtt_dic.get)
-            dns_dic[domain] = key_min
-        else:
-            dns_dic[domain] = dns_dic[domain][0]
+def set_dns_record(domain):
+    rtt_dic = {}
+    if len(dns_dic[domain]) != 1:
+        threads = []
+        for ip in dns_dic[domain]:
+            thread = threading.Thread(target=ping,args=(ip, rtt_dic))
+            threads.append(thread)
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        key_min = min(rtt_dic, key=rtt_dic.get)
+        dns_dic[domain] = key_min
+    else:
+        dns_dic[domain] = dns_dic[domain][0]
+
+def dns_check(domain):
+    reg = re.compile(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
+    response = urllib.request.urlopen(dns_check_url + domain).read()
+    html = bytes(response).decode('ascii')
+    ip_addrs = reg.findall(html)
+    dns_dic[domain] = ip_addrs
+    print('查询到'+domain+' IP地址为%s' % ip_addrs)
+    set_dns_record(domain)
 
 def hosts_update():
     with open(hosts_path, 'r+', encoding='utf-8') as host, \
@@ -126,15 +129,5 @@ if __name__ == '__main__':
     for thread in threads:
         thread.join()
     print('查询完毕，开始测试IP地址连通性……')
-    for domain in dns_dic:
-        rtt_dic = {}
-        if len(dns_dic[domain]) != 1:
-            for ip in dns_dic[domain]:
-                ping_result = ping(ip)
-                rtt_dic[ip] = get_ping_rtt(ping_result)
-            key_min = key_min = min(rtt_dic, key=rtt_dic.get)
-            dns_dic[domain] = key_min
-        else:
-            dns_dic[domain] = dns_dic[domain][0]
     print('测试完毕，开始更新hosts文件……')
     hosts_update()
