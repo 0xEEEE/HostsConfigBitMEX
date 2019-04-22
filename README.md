@@ -1,13 +1,13 @@
 # HostsConfigBitMEX
 通过https://who.is/dns 查询dns，自动更新bitmex的hosts记录。
 
-####使用环境要求
+#### 使用环境要求
 
 Linux / macOS / Windows
 
 python3+
 
-####使用方式
+#### 使用方式
 
 Windows: 
 
